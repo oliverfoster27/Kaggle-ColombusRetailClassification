@@ -14,7 +14,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import BaggingClassifier
 from collections import namedtuple
 
-
 pd.options.mode.chained_assignment = None  # default='warn'
 
 Grid = namedtuple("Grid", ['model', 'param_grid'])
@@ -40,7 +39,6 @@ grids = [
 ]
 
 
-# Custom Transformer that extracts columns passed as argument to its constructor
 class CategoricalSelector(BaseEstimator, TransformerMixin):
     # Class Constructor
     def __init__(self):
@@ -59,7 +57,6 @@ class CategoricalSelector(BaseEstimator, TransformerMixin):
         return X[self._feature_names]
 
 
-# Custom Transformer that extracts columns passed as argument to its constructor
 class NumericalSelector(BaseEstimator, TransformerMixin):
     # Class Constructor
     def __init__(self):
@@ -106,15 +103,14 @@ if __name__ == "__main__":
     X, y = df.drop(['Revenue'], axis=1), df['Revenue']
     y = y.apply(lambda x: 1 if x is True else 0)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=27)
 
     for grid in grids:
 
         # Defining the steps in the categorical pipeline
         categorical_pipeline = Pipeline(steps=[('cat_selector', CategoricalSelector()),
                                                ('cat_transformer', CategoricalTransformer()),
-                                               (
-                                               'one_hot_encoder', OneHotEncoder(sparse=False, handle_unknown='error'))])
+                                               ('one_hot_encoder', OneHotEncoder(sparse=False, handle_unknown='error'))])
 
         # Defining the steps in the numerical pipeline
         numerical_pipeline = Pipeline(steps=[('num_selector', NumericalSelector()),
@@ -137,16 +133,3 @@ if __name__ == "__main__":
         print("Best parameter (CV score=%0.3f):" % search.best_score_)
         print(search.best_params_)
 
-
-
-    # The full pipeline as a step in another pipeline with an estimator as the final step
-
-    # Can call fit on it just like any other pipeline
-    # full_pipeline.fit(X_train, y_train)
-
-    # Can predict with it like any other pipeline
-    # y_pred = full_pipeline.predict(X_test)
-    #
-    # score = accuracy_score(y_test, y_pred)
-    #
-    # print(score)
