@@ -28,7 +28,8 @@ if __name__ == "__main__":
     # Defining the steps in the categorical pipeline
     categorical_pipeline = Pipeline(steps=[('cat_selector', CategoricalSelector()),
                                            ('cat_transformer', CategoricalTransformer()),
-                                           ('one_hot_encoder', OneHotEncoder(sparse=False, handle_unknown='error'))])
+                                           ('one_hot_encoder', OneHotEncoder(sparse=False, drop='first',
+                                                                             handle_unknown='error'))])
 
     # Defining the steps in the numerical pipeline
     numerical_pipeline = Pipeline(steps=[('num_selector', NumericalSelector()),

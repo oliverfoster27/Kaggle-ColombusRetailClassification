@@ -42,11 +42,10 @@ grids = [
 ]
 
 
-class CategoricalSelector(BaseEstimator, TransformerMixin):
+class FeatureSelector(BaseEstimator, TransformerMixin):
     # Class Constructor
-    def __init__(self):
-        self._feature_names = ['Month', 'VisitorType', 'Weekend', 'OperatingSystems', 'Browser', 'Region',
-                                'TrafficType', 'SpecialDay']
+    def __init__(self, features=None):
+        self.feature_names = features
 
         # Return self nothing else to do here
 
@@ -56,24 +55,7 @@ class CategoricalSelector(BaseEstimator, TransformerMixin):
         # Method that describes what we need this transformer to do
 
     def transform(self, X, y=None):
-        return X[self._feature_names]
-
-
-class NumericalSelector(BaseEstimator, TransformerMixin):
-    # Class Constructor
-    def __init__(self):
-        self._feature_names = ['Administrative', 'Administrative_Duration', 'Informational', 'Informational_Duration',
-                              'ProductRelated', 'ProductRelated_Duration', 'BounceRates', 'ExitRates', 'PageValues']
-
-        # Return self nothing else to do here
-
-    def fit(self, X, y=None):
-        return self
-
-        # Method that describes what we need this transformer to do
-
-    def transform(self, X, y=None):
-        return X[self._feature_names]
+        return X[self.feature_names]
 
 
 class CategoricalTransformer(BaseEstimator, TransformerMixin):
@@ -107,16 +89,22 @@ if __name__ == "__main__":
 
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=27)
 
+    numerical_features = ['Administrative', 'Administrative_Duration', 'Informational', 'Informational_Duration',
+                          'ProductRelated', 'ProductRelated_Duration', 'BounceRates', 'ExitRates', 'PageValues']
+
+    categorical_features = ['Month', 'VisitorType', 'Weekend', 'OperatingSystems', 'Browser', 'Region',
+                            'TrafficType', 'SpecialDay']
+
     for grid in grids:
 
         # Defining the steps in the categorical pipeline
-        categorical_pipeline = Pipeline(steps=[('cat_selector', CategoricalSelector()),
+        categorical_pipeline = Pipeline(steps=[('cat_selector', FeatureSelector(features=categorical_features)),
                                                ('cat_transformer', CategoricalTransformer()),
                                                ('one_hot_encoder', OneHotEncoder(sparse=False, drop='first',
                                                                                  handle_unknown='error'))])
 
         # Defining the steps in the numerical pipeline
-        numerical_pipeline = Pipeline(steps=[('num_selector', NumericalSelector()),
+        numerical_pipeline = Pipeline(steps=[('num_selector', FeatureSelector(features=numerical_features)),
                                              ('imputer', SimpleImputer(strategy='median')),
                                              #('lrfe', LRFEPipeline()),
                                              ('std_scaler', StandardScaler())])
@@ -134,11 +122,20 @@ if __name__ == "__main__":
         print("\nStarting Grid: {}".format(grid))
 
         #fs_params = {'rfe__n_features_to_select': range(10, 56), 'rfe__estimator': (DecisionTreeClassifier(), )}
-        fs_params = {'sfm__threshold': (0, '0.5*mean', '0.75*mean', None, '1.25*mean')}
+        fs_params = {'sfm__threshold': (0, '0.5*mean', '0.75*mean', None, '1.25*mean'),
+                     'sfm__estimator': (DecisionTreeClassifier(), )}
+        static_params = dict()
+        # static_params = dict(prep__categorical_pipeline__one_hot_encoder__sparse=[False],
+        #                      prep__categorical_pipeline__one_hot_encoder__drop=['first'],
+        #                      prep__categorical_pipeline__one_hot_encoder__handle_unknown=['error'],
+        #                      prep__numerical_pipeline__imputer__strategy=['median'])
 
-        search = GridSearchCV(full_pipeline, {**grid.param_grid, **fs_params},
-                              scoring='accuracy', cv=5, verbose=1)
+        search = GridSearchCV(full_pipeline, {**grid.param_grid, **fs_params, **static_params},
+                              scoring='accuracy', cv=5, verbose=10)
+
+        print(search.estimator.get_params().keys())
 
         search.fit(X, y)
         print("Best parameter (CV score=%0.3f):" % search.best_score_)
         print(search.best_params_)
+
