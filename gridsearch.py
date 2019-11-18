@@ -16,6 +16,8 @@ from collections import namedtuple
 from LRFE import LRFEPipeline
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_selection import RFE, SelectFromModel
+from sklearn.metrics import fbeta_score
+from sklearn.metrics.scorer import make_scorer
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -40,6 +42,10 @@ grids = [
     {"model__C": (4, 8, 12),
      "model__degree": (3, 4, 5)})
 ]
+
+
+def f2_score(y_true, y_pred):
+    return fbeta_score(y_true, y_pred, beta=2)
 
 
 class CategoricalSelector(BaseEstimator, TransformerMixin):
@@ -107,6 +113,8 @@ if __name__ == "__main__":
 
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=27)
 
+    scorer = make_scorer(f2_score, greater_is_better=True)
+
     for grid in grids:
 
         # Defining the steps in the categorical pipeline
@@ -133,11 +141,11 @@ if __name__ == "__main__":
 
         print("\nStarting Grid: {}".format(grid))
 
-        #fs_params = {'rfe__n_features_to_select': range(10, 56), 'rfe__estimator': (DecisionTreeClassifier(), )}
+        # fs_params = {'rfe__n_features_to_select': range(10, 56), 'rfe__estimator': (DecisionTreeClassifier(), )}
         fs_params = {'sfm__threshold': (0, '0.5*mean', '0.75*mean', None, '1.25*mean')}
 
         search = GridSearchCV(full_pipeline, {**grid.param_grid, **fs_params},
-                              scoring='accuracy', cv=5, verbose=1)
+                              scoring='roc_auc', cv=5, verbose=1)
 
         search.fit(X, y)
         print("Best parameter (CV score=%0.3f):" % search.best_score_)
